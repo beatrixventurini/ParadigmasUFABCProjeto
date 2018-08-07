@@ -1,10 +1,10 @@
 #lang racket
 
-(define (splitDataset dataset splitRatio)
-  (let ([trainSize (exact-floor (* (length dataset) splitRatio))]
-        [trainSet '()])
-  (cond [(> (length trainSet) trainSize) trainSet]
-        [else (begin(cons (list-ref dataset (random 0 trainSize)) trainSet)
-                    (splitDataset dataset splitRatio))])))
+;função que separa um conjunto de dados de treino, de acordo com a porcentagem
+;definida, p. ex. 0.67 (67%)
 
-;não está ok ainda
+(define (splitDataset dataset splitRatio)
+  (define trainSize (exact-floor (* (length dataset) splitRatio)))
+  (let splitDataset-i ([trainSet '()])
+    (cond [(> (length trainSet) trainSize) trainSet]
+          [else (splitDataset-i (cons (list-ref dataset (random 0 trainSize)) trainSet))])))
