@@ -1,8 +1,0 @@
-#lang racket
-
-(define (splitDataset dataset splitRatio)
-  (let ([trainSize (* (length dataset) splitRatio)]
-        [trainSet '()])
-  (cond [(> (length trainSet) trainSize) trainSet]
-        [else (begin(append (list-ref dataset (random 0 trainSize)) trainSet)
-                    (splitDataset dataset splitRatio))])))
