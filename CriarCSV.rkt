@@ -1,16 +1,23 @@
 #lang racket
 (require csv-reading)
-
+(provide SendToCSV)
 
 ;;;;;;;; IMPUT DA SAÍDA NO CSV ---- ADD NO FIM DO CÓDIGO   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;rotulo = novo parametro a ser adicionado >> saídas do algoritmo
 ;metodo cria ou pega o arquivo nomeado, inputa os rotulos e fecha
-(define (CriarCSV rotulo)
+(define (SendToCSV rotulo)
+
+  (define (separador a)
+    (cond [(null? (cdr a))(print "fim")]
+          [else (SendToCSV(cdr a))]))
+  
   (define openToWrite (open-output-file "rotulos.csv" #:exists 'append))
-  (write rotulo openToWrite) ;neste caso vai até as aspas
-  ;(display rotulo openToWrite) ;neste caso vai só o condeúdo dentro das ""
- (display ";" openToWrite) ;caso seja necessário acrescentar um separador
+  (write (car rotulo) openToWrite) ;neste caso vai até as aspas
+  ;(display (car rotulo) openToWrite) ;neste caso vai só o condeúdo dentro das ""
+  (display ";" openToWrite) ;caso seja necessário acrescentar um separador
   (close-output-port openToWrite)
+
+  (separador rotulo)
 )
 
 
@@ -41,12 +48,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;TESTE
 (define (teste l)
-(CriarCSV l)
+(SendToCSV l)
   (if (> l 0) (teste (- l 1)) (LerCSV))
  )
 
 (define (testedois l cont)
-  (CriarCSV l)
+  (SendToCSV l)
   (if (> cont 0) (testedois l (- cont 1)) (LerCSV))
  )
 

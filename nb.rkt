@@ -3,6 +3,7 @@
 (require math/statistics)
 
 (require "BoW.rkt")
+(require "CriarCSV.rkt")
 
 (define (separateByClass_0 dataset)
   (let loop([lst dataset] [separated_0 '()])
@@ -31,11 +32,11 @@
   (cond [(null? (car (map cdr lst))) (reverse summary)]
         [else (loop (map cdr lst) (cons (list (mean (map car lst)) (stddev (map car lst))) summary))])))
 
-(define summarize_0 (delay (summarize (car (treino "TreinoExemplo.csv")))))
-(define summarize_1 (delay (summarize (cdr (treino "TreinoExemplo.csv")))))
+(define summarize_0 (delay (summarize (car (treino_final "TreinoExemplo.csv")))))
+(define summarize_1 (delay (summarize (cdr (treino_final "TreinoExemplo.csv")))))
 
 (define (calculateClassProb frase dataset)
-  (let loop ([prob1 0.5] [prob2 0.5] [frase_0 (Bow_0 frase)] [frase_1 (Bow_1 frase)] [class_0 (force summarize_0)] [class_1 (force summarize_1)])
+  (let loop ([prob1 0.5] [prob2 0.5] [frase_0 (Bow_00 frase)] [frase_1 (Bow_11 frase)] [class_0 (force summarize_0)] [class_1 (force summarize_1)])
     (cond
       [(not (null? frase_0)) (loop (* prob1 (calcProbab (car frase_0) (caar class_0) (cadar class_0))) prob2 (cdr frase_0) frase_1 (cdr class_0) class_1)]
       [(not (null? frase_1)) (loop prob1 (* prob2 (calcProbab (car frase_1) (caar class_1) (cadar class_1))) frase_0 (cdr frase_1) class_0 (cdr class_1))]
@@ -45,3 +46,13 @@
   (let prob_20 ([valorClasses (calculateClassProb frase "TreinoExemplo.csv")])
     (cond [(< (car valorClasses) (cdr valorClasses)) "familia"]
           [else "trabalho"])))
+
+
+;;;;;;;;;;;; FUNÇÃO CHAVE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define (classificar lista) ;A lista deve terminar com () no ultimo valor
+  (define (acumulador a lista)
+    (cond [(null? (cdr a)) (SendToCSV (reverse lista))] ;envia a lista para criar o arquivo csv
+          ;arma122ena os valores do predict na lista e lê o pro120imo ane120o
+          [else (acumulador (cdr a) (cons (predict (car a)) lista))]))
+  
+(acumulador lista null))
