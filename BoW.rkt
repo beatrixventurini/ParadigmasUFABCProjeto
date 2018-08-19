@@ -1,50 +1,56 @@
 #lang racket
-
-
+;Importação de pacotes
 (require csv-reading)
 
+;Importação e exportação de funções
+(require "StopWords.rkt")
+(provide treino Bow_0 Bow_1)
+
+;;Gera a lista de presença de palavras das frases de teste.
+;;Saída exemplo: '(0 0 0 1 0 0 1 0 0 1 0 0 0 0 0 1)
 (define (BoWTest n)
-  (map (lambda(x) (ismember3? x (removeStopwords n))) (bowAux "TreinoExemplo.csv")))
+  (map (lambda(x) (ismember3? x (removeStopwords n))) (force bow)))
 
-;(define (BowTrain n)
-;  ()
+(define (Bow_0 n)
+  (map (lambda(x) (ismember3? x (removeStopwords n))) (car (force bow))))
 
-(define (bowAux x)
+(define (Bow_1 n)
+  (map (lambda(x) (ismember3? x (removeStopwords n))) (car (cdr (force bow)))))
+
+;;Gera a lista de treino, com as frases de treino convertidas em lista de 0's e 1's e tem como último elemento a categoria da classe
+;;Saída exemplo: '((1 0 0 1 0 0 0 1 0 0 0 0 1 0) (0 1 0 0 0 1 0 1 0 0 0 0 1 1))
+(define (treino x)
   (define next-row
-    (make-food-csv-reader (open-input-file x)))
+    (leitor-csv (open-input-file x)))
   (next-row)
-  (let test ([data  (next-row)] [aux null])
-    (cond [(null? data) (remove-duplicates (flatten aux))]
-          [else (test (next-row) (cons (removeStopwords data) aux))])))
+  (let dadosTreino ([treino_0 null] [data (next-row)] [treino_1 null])
+    (cond  [(null? data) (cons treino_0 treino_1)]
+           [(equal? (car (cdr data)) "0") (dadosTreino (cons (append (Bow_0 data) (list (string->number (car (cdr data))))) treino_0) (next-row) treino_1)]
+           [else (dadosTreino treino_0 (next-row) (cons (append (Bow_1 data) (list (string->number (car (cdr data))))) treino_1))])))
 
+
+;;Gera o Bag of Words das frases da planilha de treino.
+;;Saída exemplo: '("almoço" "familia" "escola" "futebol" "jogo" "bola")
+(define (bow_aux x)
+  (define next-row
+    (leitor-csv (open-input-file x)))
+  (next-row)
+  (let test ([data  (next-row)] [Class_0 null] [Class_1 null])
+    (cond [(null? data) (cons (remove-duplicates (flatten Class_0)) (list (remove-duplicates (flatten Class_1))))]
+          [(equal? (car (cdr data)) "0") (test (next-row) (cons (removeStopwords data) Class_0) Class_1)]
+          [else (test (next-row) Class_0 (cons (removeStopwords data) Class_1))])))
+
+;;Executação preguiçosa da função bow_aux
+;;Saída exemplo: '("almoço" "familia" "escola" "futebol" "jogo" "bola")
+(define bow (delay (bow_aux "TreinoExemplo.csv")))
+
+;;Verifica se uma palavra faz parte de uma lista, se fizer, retorna 1, se não, 0.
 (define (ismember3? str strs) (if [member str strs] 1 0))
 
-(define make-food-csv-reader
+;Leitor CSV
+(define leitor-csv
   (make-csv-reader-maker
    '((separator-chars            #\;))))
 
 (define next-row
-  (make-food-csv-reader (open-input-file "TreinoExemplo.csv")))
-
-
-
-
-
-(define stopwords '("de" "a" "o" "que" "e" "do" "da" "em" "um" "para" "é" "com" "não" "uma" "os" "no" "se" "na" "por" "mais" "as" "dos" "como" "mas" "foi" "ao" "ele" "das" "tem"
-                          "à" "seu" "sua" "ou" "ser" "quando" "muito" "há" "nos" "já" "está" "eu" "também" "pelo" "pela" "até" "isso" "ela" "entre" "era" "depois" "sem"
-                          "só" "mesmo" "aos" "ter" "seus" "quem" "nas" "me" "esse" "eles" "estão" "você" "tinha" "foram" "essa" "num" "nem" "suas" "meu" "às" "minha"
-                          "têm" "numa" "pelos" "elas" "havia" "seja" "qual" "será" "nós" "tenho" "lhe" "deles" "essas" "esses" "pelas" "este" "fosse" "dele" "tu" "te"
-                          "vocês" "vos" "lhes" "meus" "minhas" "teu" "tua" "teus" "tuas" "nosso" "nossa" "nossos" "nossas" "dela" "delas" "esta" "estes" "estas"
-                          "aquele" "aquela" "aqueles" "aquelas" "isto" "aquilo" "estou" "está" "estamos" "estão" "estive" "esteve" "estivemos" "estiveram" "estava"
-                          "estávamos" "estavam" "estivera" "estivéramos" "esteja" "estejamos" "estejam" "estivesse" "estivéssemos" "estivessem" "estiver" "estivermos" "estiverem" "hei" "há" "havemos" "hão" "houve" "houvemos" "houveram" "houvera" "houvéramos" "haja" "hajamos" "hajam" "houvesse" "houvéssemos" "houvessem" "houver" "houvermos" "houverem" "houverei" "houverá" "houveremos" "houverão" "houveria" "houveríamos" "houveriam" "sou" "somos" "são" "era" "éramos" "eram" "fui" "foi" "fomos" "foram" "fora" "fôramos" "seja" "sejamos" "sejam" "fosse" "fôssemos" "fossem" "for" "formos" "forem" "serei" "será" "seremos" "serão" "seria" "seríamos" "seriam" "tenho" "tem" "temos" "tém" "tinha" "tínhamos" "tinham" "tive" "teve" "tivemos" "tiveram" "tivera" "tivéramos" "tenha" "tenhamos" "tenham" "tivesse" "tivéssemos" "tivessem" "tiver" "tivermos" "tiverem" "terei" "terá" "teremos" "terão" "teria" "teríamos" "teriam"))
-
-(define (removeAndSplit n)
-  (let loop([lst (string-split (car n))] [lstFinal '()])
-    (cond [(null? lst) lstFinal]
-          [else (loop (cdr lst) (append lstFinal (string-split (car lst) #px"[.,;:!\\[\\-\\]\\?]")))])))
-
-(define (removeStopwords lst)
-  (let sw ([lstSW stopwords] [listaLimpa (removeAndSplit lst)])
-    (cond
-      [(null? lstSW) listaLimpa]
-      [else (sw (cdr lstSW) (filter (lambda (x) (not (equal? (car lstSW) x))) listaLimpa))])))
+  (leitor-csv (open-input-file "TreinoExemplo.csv")))

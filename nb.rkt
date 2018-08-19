@@ -2,8 +2,7 @@
 
 (require math/statistics)
 
-;Assumindo que o último elemento das "sub-listas" indica a qual classe ela pertence (0 ou 1)
-;Funções abaixo fazem a separação
+(require "BoW.rkt")
 
 (define (separateByClass_0 dataset)
   (let loop([lst dataset] [separated_0 '()])
@@ -16,31 +15,33 @@
   (cond [(null? lst) separated_1]
         [(eq? (last (car lst)) 1) (loop (cdr lst) (cons (car lst) separated_1))]
         [else (loop (cdr lst) separated_1)])))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;Testes:
-;(define x (list '("água" "suco" "refri" 0) '("cerveja" "vodka" "vinho" 1) '("whisky" "licor" "rum" 1)))
-(define x (list '(1 2 0) '(1 2 0) '(1 2 1)))
-;(separateByClass_0 x)
-;(separateByClass_1 x)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;(mean '(1 2 3 4 5))
-;(stddev '(1 2 3 4 5))
+
+;;(define (calcProbab x media stdev)
+;;  (cond [(= x 0) ( - 1 (* (/ 1 (* (sqrt (* 2 pi)) stdev))
+;;                 (exp (/ (* -1 (expt (- x media) 2)) (* 2 (expt stdev 2))))))]
+ ;;       [else (* (/ 1 (* (sqrt (* 2 pi)) stdev))
+  ;;               (exp (/ (* -1 (expt (- x media) 2)) (* 2 (expt stdev 2)))))]))
 
 (define (calcProbab x media stdev)
-  (* (/ 1 (* (sqrt (* 2 pi)) stdev))
-     (exp (/ (* -1 (expt (- x media) 2)) (* 2 (expt stdev 2))))))
-;;;;;;;;;Teste;;;;;;;;;;;;;;;;;;;
-;x= 71.5, média=73. desvio padrao = 6.2, probabilidade deve ser aprox. 0.062489
-;(calcProbab 71.5 73 6.2)
+  (cond [(= x 0) ( - 1 media)]
+        [else media]))
 
-;Função que calcula a média e o desvio padrão de todos os atributos de uma mesma posição dentro das sub-listas
-;O retorno são pares onde o car do par é a média e o cdr o desvio padrão
 (define (summarize dataset)
   (let loop([lst dataset] [summary null])
-  (cond [(null? (car (map cdr lst))) summary]
-        [else (loop (map cdr lst) (list summary (cons (mean (map car lst)) (stddev (map car lst)))))])))
+  (cond [(null? (car (map cdr lst))) (reverse summary)]
+        [else (loop (map cdr lst) (cons (list (mean (map car lst)) (stddev (map car lst))) summary))])))
 
+(define summarize_0 (delay (summarize (car (treino "TreinoExemplo.csv")))))
+(define summarize_1 (delay (summarize (cdr (treino "TreinoExemplo.csv")))))
 
+(define (calculateClassProb frase dataset)
+  (let loop ([prob1 0.5] [prob2 0.5] [frase_0 (Bow_0 frase)] [frase_1 (Bow_1 frase)] [class_0 (force summarize_0)] [class_1 (force summarize_1)])
+    (cond
+      [(not (null? frase_0)) (loop (* prob1 (calcProbab (car frase_0) (caar class_0) (cadar class_0))) prob2 (cdr frase_0) frase_1 (cdr class_0) class_1)]
+      [(not (null? frase_1)) (loop prob1 (* prob2 (calcProbab (car frase_1) (caar class_1) (cadar class_1))) frase_0 (cdr frase_1) class_0 (cdr class_1))]
+      [else (cons prob1 prob2)])))
 
+(define (predict frase)
+  (let prob_20 ([valorClasses (calculateClassProb frase "TreinoExemplo.csv")])
+    (cond [(< (car valorClasses) (cdr valorClasses)) "familia"]
+          [else "trabalho"])))
