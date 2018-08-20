@@ -8,6 +8,9 @@
 
 ;;Gera a lista de presença de palavras das frases de teste.
 ;;Saída exemplo: '(0 0 0 1 0 0 1 0 0 1 0 0 0 0 0 1)
+;;BowTest foi feito apenas para teste
+;;Bow_1 e Bow_0 foram feitos pra realizar a contagem das palavras com mais relevância do Bag of Words
+;;Bow_11 e Bow_00 foram as funções que realmente foram usadas, com o bag of words ajustado e usando force, para gerar apenas uma vez a lista.
 (define (BoWTest n)
   (map (lambda(x) (ismember3? x (removeStopwords n))) (force bow)))
 
@@ -26,6 +29,8 @@
 
 ;;Gera a lista de treino, com as frases de treino convertidas em lista de 0's e 1's e tem como último elemento a categoria da classe
 ;;Saída exemplo: '((1 0 0 1 0 0 0 1 0 0 0 0 1 0) (0 1 0 0 0 1 0 1 0 0 0 0 1 1))
+;;treino foi utilizado apenas para realizar a contagem
+;;treino_final foi o que foi utilizado para gerar as listas de 0's e 1's da planilha de treino
 (define (treino x)
   (define next-row
     (leitor-csv (open-input-file x)))
@@ -44,6 +49,7 @@
            [(equal? (car (cdr data)) "0") (dadosTreino (cons (append (Bow_00 data) (list (string->number (car (cdr data))))) treino_0) (next-row) treino_1)]
            [else (dadosTreino treino_0 (next-row) (cons (append (Bow_11 data) (list (string->number (car (cdr data))))) treino_1))])))
 
+;Realiazam as contagens das palavras de maior relevancia dentro de cada classe
 (define (contagem_0 n)
   (let loop ([return_0 null] [treino_0 (car n)])
     (cond [(null? (car treino_0)) (reverse return_0)]
@@ -53,6 +59,19 @@
   (let loop ([return_1 null] [treino_1 (cdr n)])
     (cond [(null? (car treino_1)) (reverse return_1)]
           [else (loop (cons (foldl + 0 (map car treino_1)) return_1) (map cdr treino_1))])))
+
+;;Gera o Bag of Words das frases da planilha de treino.
+;;Saída exemplo: '("almoço" "familia" "escola" "futebol" "jogo" "bola")
+;;bow_aux gera o bag of words de todas as palavras
+;;BowFinal_0 e BowFinal_1 gera apenas das palavras que aparecem mais de duas vezes nas classes
+(define (bow_aux x)
+  (define next-row
+    (leitor-csv (open-input-file x)))
+  (next-row)
+  (let test ([data  (next-row)] [Class_0 null] [Class_1 null])
+    (cond [(null? data) (cons (remove-duplicates (flatten Class_0)) (list (remove-duplicates (flatten Class_1))))]
+          [(equal? (car (cdr data)) "0") (test (next-row) (cons (removeStopwords data) Class_0) Class_1)]
+          [else (test (next-row) Class_0 (cons (removeStopwords data) Class_1))])))
 
 (define (BowFinal_0 n)
   (let loop ([bow_00 null] [lst (contagem_0 (treino "TreinoExemplo.csv"))] [bow (car (bow_aux "TreinoExemplo.csv"))])
@@ -66,26 +85,15 @@
           [(> 2 (car lst)) loop (cons (car bow) bow_11) (cdr lst) (cdr bow)]
           [else (loop bow_11 (cdr lst) (cdr bow))])))
 
+;;Executação preguiçosa da função bow_aux
+;;Saída exemplo: '("almoço" "familia" "escola" "futebol" "jogo" "bola")
+(define bow (delay (bow_aux "TreinoExemplo.csv")))
+
 (define bowFinal_00 (delay (BowFinal_0 1)))
 
 (define bowFinal_11 (delay (BowFinal_1 1)))
 
 (define BOW (delay (flatten (cons (force bowFinal_00) (force bowFinal_11)))))
-
-;;Gera o Bag of Words das frases da planilha de treino.
-;;Saída exemplo: '("almoço" "familia" "escola" "futebol" "jogo" "bola")
-(define (bow_aux x)
-  (define next-row
-    (leitor-csv (open-input-file x)))
-  (next-row)
-  (let test ([data  (next-row)] [Class_0 null] [Class_1 null])
-    (cond [(null? data) (cons (remove-duplicates (flatten Class_0)) (list (remove-duplicates (flatten Class_1))))]
-          [(equal? (car (cdr data)) "0") (test (next-row) (cons (removeStopwords data) Class_0) Class_1)]
-          [else (test (next-row) Class_0 (cons (removeStopwords data) Class_1))])))
-
-;;Executação preguiçosa da função bow_aux
-;;Saída exemplo: '("almoço" "familia" "escola" "futebol" "jogo" "bola")
-(define bow (delay (bow_aux "TreinoExemplo.csv")))
 
 ;;Verifica se uma palavra faz parte de uma lista, se fizer, retorna 1, se não, 0.
 (define (ismember3? str strs) (if [member str strs] 1 0))
